@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'rick_morty_api.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,87 +11,100 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Actividad 3.5 Home screen - App de Películas',
+      title: 'Actividad 3.6 Peticiones HTTP',
       theme: ThemeData(
-        // Paleta de color azul para el tema principal
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue.shade900),
         useMaterial3: true,
       ),
-      home: const WelcomeScreen(),
+      home: WelcomeScreen(),
     );
   }
 }
 
-// ----------------------
+// -----------------------
 // PANTALLA DE BIENVENIDA
-// ----------------------
+// -----------------------
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key});
+  WelcomeScreen({super.key});
+
+  final RickMortyService service = RickMortyService();
+  final int characterCount = 5; // Límite de 5 personajes
 
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
-      body: Stack(
-        children: <Widget>[
-          // ---------------------
-          //   IMAGEN DE FONDO
-          // ----------------------
-          Container(
-            // Ocupa el 100% del ancho y alto disponibles
-            width: double.infinity,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade900, Colors.blue.shade700],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+      appBar: AppBar(
+        title: const Text(
+          'Actividad 3.6 Peticiones HTTP',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.blue.shade900,
+      ),
+      body: FutureBuilder<List<Character>>(
+        // Llama a la función asíncrona para obtener 5 personajes
+        future: service.fetchCharacters(characterCount),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // Cargando
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.blue),
+            );
+          } else if (snapshot.hasError) {
+            // Error
+            return Center(
+              child: Text(
+                'Error al cargar: ${snapshot.error}',
+                style: const TextStyle(color: Colors.redAccent, fontSize: 16),
+                textAlign: TextAlign.center,
               ),
-            ),
-          ),
+            );
+          } else if (snapshot.hasData) {
+            // Datos Recibidos - Mostrar Lista
+            final characters = snapshot.data!;
 
-          // -------------------------
-          //    CONTENIDO PRINCIPAL
-          // --------------------------
-          Center(
-            child: Column(
-              // Alinea el contenido al centro de la pantalla verticalmente
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                // ICONO DE LA APLICACIÓN
-                const Icon(
-                  Icons.movie_filter, // Icono de película
-                  size: 80,
-                  color:
-                      Colors
-                          .amberAccent, // Un color que resalte en el fondo azul
-                ),
+            // Usamos ListView.builder para mostrar la lista de personajes
+            return ListView.builder(
+              itemCount: characters.length,
+              itemBuilder: (context, index) {
+                final character = characters[index];
 
-                const SizedBox(height: 16), // Espacio vertical
-                // NOMBRE DE LA APLICACIÓN
-                const Text(
-                  'App Movies',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white, // Texto blanco para contraste
-                    letterSpacing: 2, // Espaciado entre letras
+                // Widget de tarjeta para mostrar cada personaje
+                return Card(
+                  elevation: 4,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
                   ),
-                ),
+                  child: ListTile(
+                    // Imagen del personaje (Usamos CircleAvatar con NetworkImage)
+                    leading: CircleAvatar(
+                      backgroundImage: NetworkImage(character.imageUrl),
+                    ),
+                    // Nombre del personaje
+                    title: Text(
+                      character.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    // Estado (Vivo, Muerto, Desconocido)
+                    subtitle: Text(
+                      'Estado: ${character.status}',
+                      style: TextStyle(
+                        color:
+                            character.status == 'Alive'
+                                ? Colors.green
+                                : Colors.red,
+                      ),
+                    ),
 
-                const SizedBox(height: 40), // Espacio vertical
-                // MENSAJE DE BIENVENIDA
-                const Text(
-                  'Hello World',
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: Colors.white70, // Un blanco más sutil
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ],
+                );
+              },
+            );
+          }
+          // Retorno por defecto
+          return const Center(child: Text('No hay datos disponibles.'));
+        },
       ),
     );
   }
